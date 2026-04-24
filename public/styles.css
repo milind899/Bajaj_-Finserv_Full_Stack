@@ -638,11 +638,7 @@ button:focus {
 }
 
 .raw-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 24px;
+  padding: 0;
 }
 
 .raw-panel-head {
@@ -650,7 +646,7 @@ button:focus {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 24px 0;
+  padding: 18px 24px 12px;
   font-size: 1.02rem;
   font-weight: 700;
 }
@@ -672,11 +668,16 @@ button:focus {
 
 .raw-json {
   margin: 0;
-  padding: 16px 24px 24px;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 24px 24px;
   color: var(--text-soft);
   font-size: 0.83rem;
   line-height: 1.7;
   overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 @keyframes node-reveal {
