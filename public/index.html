@@ -34,10 +34,15 @@
             Enter node edges below. Supports multiple trees, cycle detection, and invalid entry reporting.
           </p>
 
+          <div class="hero-actions">
+            <button id="loadSampleButton" class="utility-button" type="button">Load official sample</button>
+            <button id="clearInputButton" class="utility-button" type="button">Clear input</button>
+          </div>
+
           <div class="input-row">
             <textarea id="nodeInput" spellcheck="false">A->B, A->C, B->D, X->Y, Y->Z, Z->X</textarea>
             <button id="submitButton" class="analyse-button" type="button">
-              Analyse
+              <span id="submitLabel">Analyse</span>
               <span class="button-arrow">&rarr;</span>
             </button>
           </div>
@@ -80,6 +85,7 @@
                 <span id="statusText">Ready</span>
               </div>
             </div>
+            <div id="errorBanner" class="error-banner" hidden></div>
             <div id="hierarchies" class="hierarchy-stack"></div>
           </section>
 

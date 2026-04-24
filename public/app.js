@@ -1,7 +1,11 @@
 const nodeInput = document.getElementById("nodeInput");
 const submitButton = document.getElementById("submitButton");
+const submitLabel = document.getElementById("submitLabel");
 const copyButton = document.getElementById("copyButton");
+const loadSampleButton = document.getElementById("loadSampleButton");
+const clearInputButton = document.getElementById("clearInputButton");
 const statusText = document.getElementById("statusText");
+const errorBanner = document.getElementById("errorBanner");
 const hierarchies = document.getElementById("hierarchies");
 const invalidEntries = document.getElementById("invalidEntries");
 const duplicateEdges = document.getElementById("duplicateEdges");
@@ -17,6 +21,11 @@ const rawJsonDetails = document.getElementById("rawJsonDetails");
 const exampleButtons = Array.from(document.querySelectorAll("[data-preset]"));
 const validationSummary = document.getElementById("validationSummary");
 const validationTokens = document.getElementById("validationTokens");
+
+const officialSampleInput = `{
+  "data": ["A->B", "A->C", "B->D"]
+}`;
+
 let latestArtifacts = {
   cycleMembersByRoot: {},
 };
@@ -88,18 +97,46 @@ function extractEntries(value) {
   }
 
   return {
-    tokens: splitRawTokens(value),
+    tokens: splitRawTokens(trimmed),
     mode: "plain",
     error: "",
   };
 }
 
-function parseInput(value) {
-  return extractEntries(value).tokens;
-}
-
 function isValidToken(token) {
   return /^[A-Z]->[A-Z]$/.test(token) && token[0] !== token[3];
+}
+
+function setLoadingState(isLoading) {
+  submitButton.disabled = isLoading;
+  submitLabel.textContent = isLoading ? "Analysing" : "Analyse";
+}
+
+function setError(message) {
+  if (!message) {
+    errorBanner.hidden = true;
+    errorBanner.textContent = "";
+    return;
+  }
+
+  errorBanner.hidden = false;
+  errorBanner.textContent = message;
+}
+
+function getApiErrorMessage(payload, fallback) {
+  if (!payload) {
+    return fallback;
+  }
+
+  if (typeof payload.error === "string") {
+    return payload.error;
+  }
+
+  if (payload.error && typeof payload.error.message === "string") {
+    return payload.error.message;
+  }
+
+  return fallback;
 }
 
 function renderValidation() {
@@ -109,7 +146,7 @@ function renderValidation() {
 
   validationSummary.textContent = error
     ? error
-    : `${validCount} valid / ${invalidCount} invalid${mode === "json" ? " · json" : ""}`;
+    : `${validCount} valid / ${invalidCount} invalid${mode === "json" ? " | json" : ""}`;
 
   if (error) {
     validationTokens.innerHTML = `<span class="validation-token validation-token-invalid">${error}</span>`;
@@ -257,14 +294,24 @@ function renderTreeBranch([label, children], state, isRoot = false) {
   const nodeIndex = state.index;
   state.index += 1;
 
+  if (!childEntries.length) {
+    return `
+      <li>
+        <span class="${branchClass}" style="--i:${nodeIndex}">${label}</span>
+      </li>
+    `;
+  }
+
   return `
     <li>
-      <span class="${branchClass}" style="--i:${nodeIndex}">${label}</span>
-      ${
-        childEntries.length
-          ? `<ul>${childEntries.map((entry) => renderTreeBranch(entry, state)).join("")}</ul>`
-          : ""
-      }
+      <details class="tree-branch" open>
+        <summary>
+          <span class="branch-toggle">[${isRoot ? "-" : "+"}]</span>
+          <span class="${branchClass}" style="--i:${nodeIndex}">${label}</span>
+          <span class="branch-meta">${childEntries.length} child${childEntries.length === 1 ? "" : "ren"}</span>
+        </summary>
+        <ul>${childEntries.map((entry) => renderTreeBranch(entry, state)).join("")}</ul>
+      </details>
     </li>
   `;
 }
@@ -306,37 +353,37 @@ function renderHierarchies(items) {
 
   hierarchies.innerHTML =
     items
-    .map((item) => {
-      if (item.has_cycle) {
-        const members = latestArtifacts.cycleMembersByRoot[item.root] || [item.root];
+      .map((item) => {
+        if (item.has_cycle) {
+          const members = latestArtifacts.cycleMembersByRoot[item.root] || [item.root];
+          return `
+            <article class="hierarchy-card">
+              <div class="hierarchy-head">
+                <span class="badge badge-root">Root: ${item.root}</span>
+                <span class="badge badge-cycle">&#8635; cycle</span>
+              </div>
+              ${renderCycleVisual(item.root, 0, members)}
+            </article>
+          `;
+        }
+
+        const state = { index: 0 };
+
         return `
           <article class="hierarchy-card">
             <div class="hierarchy-head">
               <span class="badge badge-root">Root: ${item.root}</span>
-              <span class="badge badge-cycle">&#8635; cycle</span>
+              <span class="badge badge-depth">depth ${item.depth}</span>
             </div>
-            ${renderCycleVisual(item.root, 0, members)}
+            <div class="tree-stage">
+              <ul class="tree-list">${Object.entries(item.tree)
+                .map((entry) => renderTreeBranch(entry, state, true))
+                .join("")}</ul>
+            </div>
           </article>
         `;
-      }
-
-      const state = { index: 0 };
-
-      return `
-        <article class="hierarchy-card">
-          <div class="hierarchy-head">
-            <span class="badge badge-root">Root: ${item.root}</span>
-            <span class="badge badge-depth">depth ${item.depth}</span>
-          </div>
-          <div class="tree-stage">
-            <ul class="tree-list">${Object.entries(item.tree)
-              .map((entry) => renderTreeBranch(entry, state, true))
-              .join("")}</ul>
-          </div>
-        </article>
-      `;
-    })
-    .join("") +
+      })
+      .join("") +
     (items.length === 1
       ? `
         <article class="hierarchy-card hierarchy-card-note">
@@ -353,6 +400,7 @@ function renderSummary(summary) {
 }
 
 function renderResponse(payload) {
+  setError("");
   renderSummary(payload.summary);
   renderHierarchies(payload.hierarchies);
   invalidEntries.innerHTML = createPills(payload.invalid_entries, "pill-invalid", "No invalid entries");
@@ -383,11 +431,14 @@ async function submitData() {
   const startedAt = performance.now();
   latestArtifacts = deriveArtifacts(data);
   statusText.textContent = "RUNNING";
+  setLoadingState(true);
 
   if (parsedInput.error) {
     statusText.textContent = "FAILED";
+    setError(parsedInput.error);
     rawJson.textContent = JSON.stringify({ error: parsedInput.error }, null, 2);
     rawJsonDetails.open = true;
+    setLoadingState(false);
     return;
   }
 
@@ -402,16 +453,19 @@ async function submitData() {
 
     const payload = await response.json();
     if (!response.ok) {
-      throw new Error(payload.error || "API request failed");
+      throw new Error(getApiErrorMessage(payload, "API request failed"));
     }
 
     renderResponse(payload);
     const elapsed = Math.round(performance.now() - startedAt);
-    statusText.textContent = `READY · ${elapsed}ms`;
+    statusText.textContent = `READY | ${elapsed}ms`;
   } catch (error) {
     statusText.textContent = "FAILED";
+    setError(error.message);
     rawJson.textContent = JSON.stringify({ error: error.message }, null, 2);
     rawJsonDetails.open = true;
+  } finally {
+    setLoadingState(false);
   }
 }
 
@@ -421,6 +475,18 @@ exampleButtons.forEach((button) => {
     renderValidation();
     await submitData();
   });
+});
+
+loadSampleButton.addEventListener("click", () => {
+  nodeInput.value = officialSampleInput;
+  renderValidation();
+});
+
+clearInputButton.addEventListener("click", () => {
+  nodeInput.value = "";
+  renderValidation();
+  setError("");
+  statusText.textContent = "Ready";
 });
 
 nodeInput.addEventListener("input", renderValidation);
@@ -445,9 +511,10 @@ renderResponse({
   summary: {
     total_trees: 0,
     total_cycles: 0,
-    largest_tree_root: "",
+    largest_tree_root: null,
   },
 });
 
 renderValidation();
+setLoadingState(false);
 fetchProfile();

@@ -51,4 +51,25 @@ assert.deepEqual(trimAndMultiParent.hierarchies[0].tree, {
   },
 });
 
+const cycleOnly = processHierarchyData([
+  "A->B",
+  "B->A",
+]);
+
+assert.equal(cycleOnly.summary.total_trees, 0);
+assert.equal(cycleOnly.summary.total_cycles, 1);
+assert.equal(cycleOnly.summary.largest_tree_root, null);
+assert.deepEqual(cycleOnly.hierarchies[0], {
+  root: "A",
+  tree: {},
+  has_cycle: true,
+});
+
+const tiebreak = processHierarchyData([
+  "B->C",
+  "A->D",
+]);
+
+assert.equal(tiebreak.summary.largest_tree_root, "A");
+
 console.log("All tests passed.");

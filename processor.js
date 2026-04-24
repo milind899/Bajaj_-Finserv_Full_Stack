@@ -23,6 +23,7 @@ function isValidEdge(entry) {
   return parent !== child;
 }
 
+// Build the nested object shape required by the challenge response.
 function createHierarchyTree(root, childrenByParent) {
   const children = childrenByParent.get(root) || [];
   const branch = {};
@@ -34,6 +35,7 @@ function createHierarchyTree(root, childrenByParent) {
   return branch;
 }
 
+// Depth counts nodes on the longest root-to-leaf path.
 function longestDepth(node, childrenByParent) {
   const children = childrenByParent.get(node) || [];
   if (!children.length) {
@@ -48,6 +50,7 @@ function longestDepth(node, childrenByParent) {
   return best + 1;
 }
 
+// Traverse one undirected component so disconnected groups stay separate.
 function buildComponent(startNode, adjacency) {
   const stack = [startNode];
   const seen = new Set([startNode]);
@@ -66,7 +69,8 @@ function buildComponent(startNode, adjacency) {
   return seen;
 }
 
-function componentHasCycle(root, nodes, childrenByParent) {
+// Detect directed cycles inside one connected component.
+function componentHasCycle(nodes, childrenByParent) {
   const visiting = new Set();
   const visited = new Set();
 
@@ -180,7 +184,7 @@ function processHierarchyData(input) {
         .filter((node) => !parentByChild.has(node))
         .sort((a, b) => a.localeCompare(b));
       const root = roots[0] || nodeList.slice().sort((a, b) => a.localeCompare(b))[0];
-      const hasCycle = componentHasCycle(root, nodes, childrenByParent);
+      const hasCycle = componentHasCycle(nodes, childrenByParent);
       const order = nodeList.reduce((best, node) => {
         const seenAt = nodeFirstSeen.get(node) ?? Number.MAX_SAFE_INTEGER;
         return Math.min(best, seenAt);
@@ -213,7 +217,7 @@ function processHierarchyData(input) {
     .map((item) => item.data);
 
   const nonCyclicHierarchies = hierarchies.filter((item) => !item.has_cycle);
-  let largestTreeRoot = "";
+  let largestTreeRoot = null;
 
   for (const hierarchy of nonCyclicHierarchies) {
     if (!largestTreeRoot) {
