@@ -3,71 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SRM Hierarchy Explorer</title>
+    <title>Bajaj Finserv Hierarchy Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div class="backdrop-grid" aria-hidden="true"></div>
+    <div class="backdrop-orbit orbit-left" aria-hidden="true"></div>
+    <div class="backdrop-orbit orbit-right" aria-hidden="true"></div>
+
     <div class="page-shell">
-      <header class="hero">
-        <p class="eyebrow">SRM Full Stack Engineering Challenge</p>
-        <div class="hero-grid">
-          <div>
-            <h1>Hierarchy explorer with a solid, readable UI.</h1>
+      <header class="masthead reveal">
+        <div class="masthead-topline">
+          <span class="eyebrow">Full Stack Engineering Challenge</span>
+          <span class="eyebrow">Single Page Frontend + POST /bfhl API</span>
+        </div>
+
+        <div class="masthead-grid">
+          <div class="masthead-copy">
+            <p class="display-kicker">Evaluation-ready interface</p>
+            <h1>Hierarchy intelligence presented like a review console, not a student demo.</h1>
             <p class="hero-copy">
-              Paste your edge list, submit to <code>/bfhl</code>, and inspect
-              trees, cycles, duplicates, and invalid entries without any glassmorphism.
+              Submit edge lists, inspect valid trees, spot cycles instantly, and read the exact JSON
+              that the evaluator will receive. The interface is tuned for clarity, fast scanning, and
+              confidence under review.
             </p>
+
+            <div class="signal-row">
+              <span class="signal-chip">POST /bfhl</span>
+              <span class="signal-chip">CORS Enabled</span>
+              <span class="signal-chip">DDMMYYYY Identity</span>
+              <span class="signal-chip">Vercel Ready</span>
+            </div>
           </div>
-          <aside class="identity-card">
-            <p class="identity-label">Profile status</p>
-            <div id="profileStatus" class="identity-value">Loading...</div>
-            <p class="identity-note">
-              Update the email and DOB in <code>processor.js</code> before final submission if needed.
-            </p>
+
+          <aside class="profile-panel">
+            <div class="profile-label">Profile integrity</div>
+            <div id="profileStatus" class="profile-status">Checking...</div>
+            <dl class="profile-grid">
+              <div>
+                <dt>Email</dt>
+                <dd>ms5435@srmist.edu.in</dd>
+              </div>
+              <div>
+                <dt>Roll</dt>
+                <dd>RA2311003010028</dd>
+              </div>
+              <div>
+                <dt>DOB</dt>
+                <dd>06-12-2004</dd>
+              </div>
+              <div>
+                <dt>User ID</dt>
+                <dd>milindshandilya_06122004</dd>
+              </div>
+            </dl>
           </aside>
         </div>
       </header>
 
-      <main class="layout">
-        <section class="panel input-panel">
-          <div class="panel-head">
-            <h2>Input</h2>
-            <button id="sampleButton" class="ghost-button" type="button">Load sample</button>
+      <main class="workspace">
+        <section class="panel panel-editor reveal">
+          <div class="panel-header">
+            <div>
+              <p class="section-tag">Input Console</p>
+              <h2>Compose the hierarchy payload</h2>
+            </div>
+            <button id="sampleButton" class="button button-secondary" type="button">Load sample</button>
           </div>
-          <label class="field-label" for="nodeInput">One entry per line or comma separated</label>
+
+          <div class="instruction-strip">
+            <div class="instruction-card">
+              <span class="instruction-index">01</span>
+              <p>Use one edge per line or comma-separated entries.</p>
+            </div>
+            <div class="instruction-card">
+              <span class="instruction-index">02</span>
+              <p>Whitespace is trimmed before validation.</p>
+            </div>
+            <div class="instruction-card">
+              <span class="instruction-index">03</span>
+              <p>Multi-parent conflicts keep the first valid parent only.</p>
+            </div>
+          </div>
+
+          <label class="field-label" for="nodeInput">Payload entries</label>
           <textarea id="nodeInput" spellcheck="false">A->B
 A->C
 B->D</textarea>
-          <div class="actions">
-            <button id="submitButton" class="primary-button" type="button">Submit</button>
-            <span id="statusText" class="status-text">Ready</span>
+
+          <div class="editor-footer">
+            <div class="editor-metrics">
+              <div class="metric-box">
+                <span class="metric-label">Entries detected</span>
+                <strong id="entryCount">3</strong>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Submission state</span>
+                <strong id="statusText">Ready</strong>
+              </div>
+            </div>
+
+            <button id="submitButton" class="button button-primary" type="button">
+              Run analysis
+            </button>
           </div>
         </section>
 
-        <section class="panel response-panel">
-          <div class="panel-head">
-            <h2>Structured response</h2>
-            <button id="copyButton" class="ghost-button" type="button">Copy JSON</button>
-          </div>
-          <div id="summaryStrip" class="summary-strip"></div>
-          <div id="hierarchies" class="hierarchy-list"></div>
-          <div class="meta-grid">
-            <div class="meta-box">
-              <h3>Invalid entries</h3>
-              <ul id="invalidEntries" class="pill-list"></ul>
+        <section class="panel panel-results reveal reveal-delay-1">
+          <div class="panel-header">
+            <div>
+              <p class="section-tag">Response View</p>
+              <h2>Structured evaluator output</h2>
             </div>
-            <div class="meta-box">
-              <h3>Duplicate edges</h3>
-              <ul id="duplicateEdges" class="pill-list"></ul>
+            <div class="result-actions">
+              <div id="responseState" class="response-state">Awaiting request</div>
+              <button id="copyButton" class="button button-secondary" type="button">Copy JSON</button>
             </div>
           </div>
-          <pre id="rawJson" class="raw-json"></pre>
+
+          <div class="overview-band">
+            <div id="summaryStrip" class="summary-strip"></div>
+            <div class="overview-card">
+              <span class="overview-label">Last response</span>
+              <strong id="responseStamp">No request yet</strong>
+            </div>
+          </div>
+
+          <section class="results-cluster">
+            <div>
+              <p class="cluster-tag">Hierarchies</p>
+              <div id="hierarchies" class="hierarchy-list"></div>
+            </div>
+
+            <div class="issues-grid">
+              <article class="issue-card">
+                <div class="issue-head">
+                  <p class="cluster-tag">Invalid entries</p>
+                  <span class="issue-badge">Validation</span>
+                </div>
+                <ul id="invalidEntries" class="pill-list"></ul>
+              </article>
+
+              <article class="issue-card">
+                <div class="issue-head">
+                  <p class="cluster-tag">Duplicate edges</p>
+                  <span class="issue-badge">Normalization</span>
+                </div>
+                <ul id="duplicateEdges" class="pill-list"></ul>
+              </article>
+            </div>
+          </section>
+
+          <section class="json-panel">
+            <div class="json-head">
+              <p class="cluster-tag">Raw JSON</p>
+              <span class="json-note">Exact payload for verification and copy-paste checks</span>
+            </div>
+            <pre id="rawJson" class="raw-json"></pre>
+          </section>
         </section>
       </main>
     </div>

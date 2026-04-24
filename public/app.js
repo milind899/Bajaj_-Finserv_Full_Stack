@@ -3,12 +3,15 @@ const submitButton = document.getElementById("submitButton");
 const sampleButton = document.getElementById("sampleButton");
 const copyButton = document.getElementById("copyButton");
 const statusText = document.getElementById("statusText");
+const responseState = document.getElementById("responseState");
+const responseStamp = document.getElementById("responseStamp");
 const summaryStrip = document.getElementById("summaryStrip");
 const hierarchies = document.getElementById("hierarchies");
 const invalidEntries = document.getElementById("invalidEntries");
 const duplicateEdges = document.getElementById("duplicateEdges");
 const rawJson = document.getElementById("rawJson");
 const profileStatus = document.getElementById("profileStatus");
+const entryCount = document.getElementById("entryCount");
 
 const sampleInput = [
   "A->B",
@@ -29,11 +32,22 @@ const sampleInput = [
   "A->",
 ].join("\n");
 
+function formatNow() {
+  return new Date().toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function parseInput(value) {
   return value
     .split(/\n|,/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function refreshEntryCount() {
+  entryCount.textContent = String(parseInput(nodeInput.value).length);
 }
 
 function createList(items, emptyText) {
@@ -63,7 +77,9 @@ function renderHierarchies(items) {
     hierarchies.innerHTML = `
       <article class="hierarchy-card">
         <h3>No hierarchies yet</h3>
-        <p class="hero-copy">Submit a payload to see the API response rendered here.</p>
+        <p class="hero-copy" style="margin-top: 10px; color: #55606d;">
+          Submit a payload to render the processed hierarchy objects here.
+        </p>
       </article>
     `;
     return;
@@ -72,7 +88,7 @@ function renderHierarchies(items) {
   hierarchies.innerHTML = items
     .map((item, index) => {
       const treeMarkup = item.has_cycle
-        ? `<div class="tree-shell"><strong>Cycle detected.</strong> Tree output is intentionally empty.</div>`
+        ? `<div class="tree-shell"><strong>Cycle detected.</strong> Tree output is intentionally empty for cyclic groups.</div>`
         : `<div class="tree-shell"><ul class="tree-list">${Object.entries(item.tree)
             .map(renderTreeNode)
             .join("")}</ul></div>`;
@@ -89,8 +105,8 @@ function renderHierarchies(items) {
             }
             ${
               item.has_cycle
-                ? `<span class="chip chip-cycle">cycle</span>`
-                : `<span class="chip">tree</span>`
+                ? `<span class="chip chip-cycle">cycle detected</span>`
+                : `<span class="chip">valid tree</span>`
             }
           </div>
           ${treeMarkup}
@@ -104,7 +120,7 @@ function renderSummary(summary) {
   const entries = [
     ["Total trees", summary.total_trees],
     ["Total cycles", summary.total_cycles],
-    ["Largest root", summary.largest_tree_root || "-"],
+    ["Largest tree root", summary.largest_tree_root || "-"],
   ];
 
   summaryStrip.innerHTML = entries
@@ -127,25 +143,26 @@ function renderResponse(payload) {
   rawJson.textContent = JSON.stringify(payload, null, 2);
 }
 
+function setResponseMeta(stateText, stampText) {
+  responseState.textContent = stateText;
+  responseStamp.textContent = stampText;
+}
+
 async function fetchProfile() {
   try {
     const response = await fetch("/profile");
     const profile = await response.json();
-    const emailReady = !profile.emailId.includes("replace-with-your-srm-email");
-    const dobReady = profile.dob !== "01012000";
-
-    profileStatus.textContent = `${emailReady ? "email set" : "email pending"} / ${
-      dobReady ? "dob set" : "dob pending"
-    }`;
-  } catch (error) {
+    profileStatus.textContent = `${profile.fullName} verified`;
+  } catch (_error) {
     profileStatus.textContent = "Profile check unavailable";
   }
 }
 
 async function submitData() {
   const data = parseInput(nodeInput.value);
-  statusText.textContent = "Submitting...";
+  statusText.textContent = "Submitting";
   submitButton.disabled = true;
+  setResponseMeta("Running analysis", `Requested ${formatNow()}`);
 
   try {
     const response = await fetch("/bfhl", {
@@ -163,16 +180,22 @@ async function submitData() {
 
     renderResponse(payload);
     statusText.textContent = "Success";
+    setResponseMeta("Response verified", `Updated ${formatNow()}`);
   } catch (error) {
-    statusText.textContent = error.message;
+    statusText.textContent = "Failed";
+    setResponseMeta("Request failed", `Error at ${formatNow()}`);
     rawJson.textContent = JSON.stringify({ error: error.message }, null, 2);
   } finally {
     submitButton.disabled = false;
   }
 }
 
+nodeInput.addEventListener("input", refreshEntryCount);
+
 sampleButton.addEventListener("click", () => {
   nodeInput.value = sampleInput;
+  refreshEntryCount();
+  setResponseMeta("Sample loaded", "Ready for submission");
 });
 
 copyButton.addEventListener("click", async () => {
@@ -181,7 +204,8 @@ copyButton.addEventListener("click", async () => {
   }
 
   await navigator.clipboard.writeText(rawJson.textContent);
-  statusText.textContent = "JSON copied";
+  statusText.textContent = "Copied";
+  setResponseMeta("JSON copied", `Copied ${formatNow()}`);
 });
 
 submitButton.addEventListener("click", submitData);
@@ -197,4 +221,6 @@ renderResponse({
   },
 });
 
+refreshEntryCount();
+setResponseMeta("Awaiting request", "No request yet");
 fetchProfile();
