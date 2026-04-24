@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SRM Hierarchy Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">SRM Full Stack Engineering Challenge</p>
+        <div class="hero-grid">
+          <div>
+            <h1>Hierarchy explorer with a solid, readable UI.</h1>
+            <p class="hero-copy">
+              Paste your edge list, submit to <code>/bfhl</code>, and inspect
+              trees, cycles, duplicates, and invalid entries without any glassmorphism.
+            </p>
+          </div>
+          <aside class="identity-card">
+            <p class="identity-label">Profile status</p>
+            <div id="profileStatus" class="identity-value">Loading...</div>
+            <p class="identity-note">
+              Update the email and DOB in <code>processor.js</code> before final submission if needed.
+            </p>
+          </aside>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel input-panel">
+          <div class="panel-head">
+            <h2>Input</h2>
+            <button id="sampleButton" class="ghost-button" type="button">Load sample</button>
+          </div>
+          <label class="field-label" for="nodeInput">One entry per line or comma separated</label>
+          <textarea id="nodeInput" spellcheck="false">A->B
+A->C
+B->D</textarea>
+          <div class="actions">
+            <button id="submitButton" class="primary-button" type="button">Submit</button>
+            <span id="statusText" class="status-text">Ready</span>
+          </div>
+        </section>
+
+        <section class="panel response-panel">
+          <div class="panel-head">
+            <h2>Structured response</h2>
+            <button id="copyButton" class="ghost-button" type="button">Copy JSON</button>
+          </div>
+          <div id="summaryStrip" class="summary-strip"></div>
+          <div id="hierarchies" class="hierarchy-list"></div>
+          <div class="meta-grid">
+            <div class="meta-box">
+              <h3>Invalid entries</h3>
+              <ul id="invalidEntries" class="pill-list"></ul>
+            </div>
+            <div class="meta-box">
+              <h3>Duplicate edges</h3>
+              <ul id="duplicateEdges" class="pill-list"></ul>
+            </div>
+          </div>
+          <pre id="rawJson" class="raw-json"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
