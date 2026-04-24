@@ -638,25 +638,21 @@ button:focus {
 }
 
 .raw-panel {
-  padding: 0;
-}
-
-#rawJsonDetails {
-  padding: 0;
-}
-
-#rawJsonDetails summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 18px 24px;
-  cursor: pointer;
-  list-style: none;
 }
 
-#rawJsonDetails summary::-webkit-details-marker {
-  display: none;
+.raw-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px 0;
+  font-size: 1.02rem;
+  font-weight: 700;
 }
 
 .copy-button {
@@ -664,11 +660,19 @@ button:focus {
   border-radius: 999px;
   color: var(--text-soft);
   font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.copy-button-prominent {
+  border-color: rgba(75, 159, 255, 0.55);
+  background: rgba(75, 159, 255, 0.18);
+  color: var(--blue-soft);
+  box-shadow: 0 0 0 1px rgba(75, 159, 255, 0.18) inset;
 }
 
 .raw-json {
   margin: 0;
-  padding: 0 24px 24px;
+  padding: 16px 24px 24px;
   color: var(--text-soft);
   font-size: 0.83rem;
   line-height: 1.7;

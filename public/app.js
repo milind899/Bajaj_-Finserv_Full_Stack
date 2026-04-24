@@ -17,7 +17,6 @@ const largestTreeRoot = document.getElementById("largestTreeRoot");
 const identityUserId = document.getElementById("identityUserId");
 const identityEmail = document.getElementById("identityEmail");
 const identityRoll = document.getElementById("identityRoll");
-const rawJsonDetails = document.getElementById("rawJsonDetails");
 const exampleButtons = Array.from(document.querySelectorAll("[data-preset]"));
 const validationSummary = document.getElementById("validationSummary");
 const validationTokens = document.getElementById("validationTokens");
@@ -437,7 +436,6 @@ async function submitData() {
     statusText.textContent = "FAILED";
     setError(parsedInput.error);
     rawJson.textContent = JSON.stringify({ error: parsedInput.error }, null, 2);
-    rawJsonDetails.open = true;
     setLoadingState(false);
     return;
   }
@@ -463,7 +461,6 @@ async function submitData() {
     statusText.textContent = "FAILED";
     setError(error.message);
     rawJson.textContent = JSON.stringify({ error: error.message }, null, 2);
-    rawJsonDetails.open = true;
   } finally {
     setLoadingState(false);
   }
