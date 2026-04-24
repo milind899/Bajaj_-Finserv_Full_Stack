@@ -28,8 +28,17 @@ function splitRawTokens(value) {
     .filter((entry) => entry.length > 0);
 }
 
+function normalizeInput(value) {
+  return value
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+}
+
 function extractEntries(value) {
-  const trimmed = value.trim();
+  const trimmed = normalizeInput(value);
 
   if (!trimmed) {
     return {
@@ -39,7 +48,13 @@ function extractEntries(value) {
     };
   }
 
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+  const looksLikeJson =
+    trimmed.startsWith("{") ||
+    trimmed.startsWith("[") ||
+    trimmed.includes('"data"') ||
+    trimmed.includes("'data'");
+
+  if (looksLikeJson) {
     try {
       const parsed = JSON.parse(trimmed);
       const tokens = Array.isArray(parsed)
@@ -363,10 +378,18 @@ async function fetchProfile() {
 }
 
 async function submitData() {
-  const data = parseInput(nodeInput.value);
+  const parsedInput = extractEntries(nodeInput.value);
+  const data = parsedInput.tokens;
   const startedAt = performance.now();
   latestArtifacts = deriveArtifacts(data);
   statusText.textContent = "RUNNING";
+
+  if (parsedInput.error) {
+    statusText.textContent = "FAILED";
+    rawJson.textContent = JSON.stringify({ error: parsedInput.error }, null, 2);
+    rawJsonDetails.open = true;
+    return;
+  }
 
   try {
     const response = await fetch("/bfhl", {
