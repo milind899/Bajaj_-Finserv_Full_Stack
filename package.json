@@ -1,0 +1,12 @@
+{
+  "name": "srm-fullstack-challenge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SRM Full Stack Engineering Challenge solution with a built-in frontend and POST /bfhl API.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node tests/run-tests.js"
+  }
+}
