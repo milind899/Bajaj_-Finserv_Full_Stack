@@ -15,12 +15,103 @@ const identityEmail = document.getElementById("identityEmail");
 const identityRoll = document.getElementById("identityRoll");
 const rawJsonDetails = document.getElementById("rawJsonDetails");
 const exampleButtons = Array.from(document.querySelectorAll("[data-preset]"));
+const validationSummary = document.getElementById("validationSummary");
+const validationTokens = document.getElementById("validationTokens");
+let latestArtifacts = {
+  cycleMembersByRoot: {},
+};
 
-function parseInput(value) {
+function splitRawTokens(value) {
   return value
     .split(/\n|,/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function extractEntries(value) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return {
+      tokens: [],
+      mode: "plain",
+      error: "",
+    };
+  }
+
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const tokens = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.data)
+          ? parsed.data
+          : null;
+
+      if (!tokens) {
+        return {
+          tokens: [],
+          mode: "json",
+          error: 'JSON input must be an array or an object with a "data" array.',
+        };
+      }
+
+      return {
+        tokens: tokens
+          .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+          .filter((entry) => entry.length > 0),
+        mode: "json",
+        error: "",
+      };
+    } catch (_error) {
+      return {
+        tokens: [],
+        mode: "json",
+        error: "Invalid JSON input.",
+      };
+    }
+  }
+
+  return {
+    tokens: splitRawTokens(value),
+    mode: "plain",
+    error: "",
+  };
+}
+
+function parseInput(value) {
+  return extractEntries(value).tokens;
+}
+
+function isValidToken(token) {
+  return /^[A-Z]->[A-Z]$/.test(token) && token[0] !== token[3];
+}
+
+function renderValidation() {
+  const { tokens, mode, error } = extractEntries(nodeInput.value);
+  const validCount = tokens.filter(isValidToken).length;
+  const invalidCount = tokens.length - validCount;
+
+  validationSummary.textContent = error
+    ? error
+    : `${validCount} valid / ${invalidCount} invalid${mode === "json" ? " · json" : ""}`;
+
+  if (error) {
+    validationTokens.innerHTML = `<span class="validation-token validation-token-invalid">${error}</span>`;
+    return;
+  }
+
+  if (!tokens.length) {
+    validationTokens.innerHTML = '<span class="pill pill-neutral">Enter edges to validate</span>';
+    return;
+  }
+
+  validationTokens.innerHTML = tokens
+    .map((token) => {
+      const valid = isValidToken(token);
+      return `<span class="validation-token ${valid ? "validation-token-valid" : "validation-token-invalid"}">${token}</span>`;
+    })
+    .join("");
 }
 
 function createPills(items, variant, emptyText) {
@@ -33,28 +124,153 @@ function createPills(items, variant, emptyText) {
     .join("");
 }
 
-function renderTreeBranch([label, children], isRoot = false) {
-  const branchClass = isRoot ? "tree-node" : "tree-node tree-node-default";
+function detectCycleInComponent(nodes, childrenByParent) {
+  const visiting = new Set();
+  const visited = new Set();
+
+  function dfs(node) {
+    if (visiting.has(node)) {
+      return true;
+    }
+
+    if (visited.has(node)) {
+      return false;
+    }
+
+    visiting.add(node);
+    const children = childrenByParent.get(node) || [];
+    for (const child of children) {
+      if (nodes.has(child) && dfs(child)) {
+        return true;
+      }
+    }
+    visiting.delete(node);
+    visited.add(node);
+    return false;
+  }
+
+  for (const node of nodes) {
+    if (!visited.has(node) && dfs(node)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function deriveArtifacts(tokens) {
+  const edgeSeen = new Set();
+  const parentByChild = new Map();
+  const childrenByParent = new Map();
+  const adjacency = new Map();
+  const allNodes = new Set();
+  const cycleMembersByRoot = {};
+
+  const touchNode = (node) => {
+    allNodes.add(node);
+    if (!adjacency.has(node)) {
+      adjacency.set(node, new Set());
+    }
+  };
+
+  tokens.forEach((token) => {
+    if (!isValidToken(token)) {
+      return;
+    }
+
+    if (edgeSeen.has(token)) {
+      return;
+    }
+    edgeSeen.add(token);
+
+    const [parent, child] = token.split("->");
+    if (parentByChild.has(child)) {
+      return;
+    }
+
+    parentByChild.set(child, parent);
+    if (!childrenByParent.has(parent)) {
+      childrenByParent.set(parent, []);
+    }
+    childrenByParent.get(parent).push(child);
+
+    touchNode(parent);
+    touchNode(child);
+    adjacency.get(parent).add(child);
+    adjacency.get(child).add(parent);
+  });
+
+  const seen = new Set();
+
+  for (const start of allNodes) {
+    if (seen.has(start)) {
+      continue;
+    }
+
+    const stack = [start];
+    const component = new Set([start]);
+    seen.add(start);
+
+    while (stack.length) {
+      const node = stack.pop();
+      const neighbors = adjacency.get(node) || new Set();
+      for (const neighbor of neighbors) {
+        if (!seen.has(neighbor)) {
+          seen.add(neighbor);
+          component.add(neighbor);
+          stack.push(neighbor);
+        }
+      }
+    }
+
+    const members = Array.from(component).sort((a, b) => a.localeCompare(b));
+    const roots = members.filter((node) => !parentByChild.has(node));
+    const root = (roots.length ? roots.sort((a, b) => a.localeCompare(b)) : members)[0];
+    if (detectCycleInComponent(component, childrenByParent)) {
+      cycleMembersByRoot[root] = members;
+    }
+  }
+
+  return {
+    cycleMembersByRoot,
+  };
+}
+
+function renderTreeBranch([label, children], state, isRoot = false) {
+  const branchClass = isRoot ? "tree-node tree-node-root" : "tree-node tree-node-default";
   const childEntries = Object.entries(children || {});
+  const nodeIndex = state.index;
+  state.index += 1;
 
   return `
     <li>
-      <span class="${branchClass}">${label}</span>
+      <span class="${branchClass}" style="--i:${nodeIndex}">${label}</span>
       ${
         childEntries.length
-          ? `<ul>${childEntries.map((entry) => renderTreeBranch(entry)).join("")}</ul>`
+          ? `<ul>${childEntries.map((entry) => renderTreeBranch(entry, state)).join("")}</ul>`
           : ""
       }
     </li>
   `;
 }
 
-function renderCycleVisual(root) {
+function renderCycleVisual(root, startIndex, members) {
+  const orderedMembers = (members && members.length ? members : [root, "cycle"]).slice();
+
   return `
     <div class="cycle-visual">
-      <span class="cycle-node">${root}</span>
-      <span class="cycle-arrow">↻</span>
-      <span class="cycle-node">cycle</span>
+      ${orderedMembers
+        .map(
+          (member, index) => `
+            <span class="cycle-node" style="--i:${startIndex + index}">${member}</span>
+            ${
+              index < orderedMembers.length - 1
+                ? '<span class="cycle-arrow">&rarr;</span>'
+                : '<span class="cycle-arrow">&#8635;</span>'
+            }
+          `
+        )
+        .join("")}
       <span class="cycle-note">cyclic group detected</span>
     </div>
   `;
@@ -73,19 +289,23 @@ function renderHierarchies(items) {
     return;
   }
 
-  hierarchies.innerHTML = items
+  hierarchies.innerHTML =
+    items
     .map((item) => {
       if (item.has_cycle) {
+        const members = latestArtifacts.cycleMembersByRoot[item.root] || [item.root];
         return `
           <article class="hierarchy-card">
             <div class="hierarchy-head">
               <span class="badge badge-root">Root: ${item.root}</span>
-              <span class="badge badge-cycle">↻ cycle</span>
+              <span class="badge badge-cycle">&#8635; cycle</span>
             </div>
-            ${renderCycleVisual(item.root)}
+            ${renderCycleVisual(item.root, 0, members)}
           </article>
         `;
       }
+
+      const state = { index: 0 };
 
       return `
         <article class="hierarchy-card">
@@ -95,13 +315,20 @@ function renderHierarchies(items) {
           </div>
           <div class="tree-stage">
             <ul class="tree-list">${Object.entries(item.tree)
-              .map((entry) => renderTreeBranch(entry, true))
+              .map((entry) => renderTreeBranch(entry, state, true))
               .join("")}</ul>
           </div>
         </article>
       `;
     })
-    .join("");
+    .join("") +
+    (items.length === 1
+      ? `
+        <article class="hierarchy-card hierarchy-card-note">
+          <div class="hierarchy-note">No other hierarchies detected.</div>
+        </article>
+      `
+      : "");
 }
 
 function renderSummary(summary) {
@@ -137,7 +364,9 @@ async function fetchProfile() {
 
 async function submitData() {
   const data = parseInput(nodeInput.value);
-  statusText.textContent = "Running";
+  const startedAt = performance.now();
+  latestArtifacts = deriveArtifacts(data);
+  statusText.textContent = "RUNNING";
 
   try {
     const response = await fetch("/bfhl", {
@@ -154,20 +383,24 @@ async function submitData() {
     }
 
     renderResponse(payload);
-    statusText.textContent = "Ready";
+    const elapsed = Math.round(performance.now() - startedAt);
+    statusText.textContent = `READY · ${elapsed}ms`;
   } catch (error) {
-    statusText.textContent = "Failed";
+    statusText.textContent = "FAILED";
     rawJson.textContent = JSON.stringify({ error: error.message }, null, 2);
     rawJsonDetails.open = true;
   }
 }
 
 exampleButtons.forEach((button) => {
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     nodeInput.value = button.dataset.preset;
+    renderValidation();
+    await submitData();
   });
 });
 
+nodeInput.addEventListener("input", renderValidation);
 submitButton.addEventListener("click", submitData);
 
 copyButton.addEventListener("click", async (event) => {
@@ -177,7 +410,9 @@ copyButton.addEventListener("click", async (event) => {
   }
 
   await navigator.clipboard.writeText(rawJson.textContent);
-  statusText.textContent = "Copied";
+  if (!statusText.textContent.startsWith("READY")) {
+    statusText.textContent = "COPIED";
+  }
 });
 
 renderResponse({
@@ -191,4 +426,5 @@ renderResponse({
   },
 });
 
+renderValidation();
 fetchProfile();

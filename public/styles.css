@@ -46,7 +46,9 @@ pre,
 .identity-grid dt,
 .status-line,
 .copy-button,
-.example-chip {
+.example-chip,
+.validation-head,
+.validation-token {
   font-family: "IBM Plex Mono", monospace;
 }
 
@@ -200,6 +202,52 @@ button:focus {
   font-size: 0.82rem;
 }
 
+.validation-panel {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #2d2d2a;
+}
+
+.validation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.validation-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.validation-token {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border: 0.5px solid transparent;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.validation-token-valid {
+  background: rgba(75, 159, 255, 0.14);
+  border-color: rgba(75, 159, 255, 0.28);
+  color: var(--blue-soft);
+}
+
+.validation-token-invalid {
+  background: rgba(239, 100, 100, 0.14);
+  border-color: rgba(239, 100, 100, 0.28);
+  color: var(--red-soft);
+}
+
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -316,7 +364,8 @@ button:focus {
 }
 
 .tree-stage {
-  padding: 10px 0 0 12px;
+  padding: 10px 0 0;
+  overflow-x: auto;
 }
 
 .tree-list,
@@ -329,6 +378,7 @@ button:focus {
 .tree-list {
   display: flex;
   justify-content: center;
+  min-width: fit-content;
 }
 
 .tree-list li {
@@ -394,10 +444,20 @@ button:focus {
   color: #245f9a;
   font-family: "IBM Plex Mono", monospace;
   font-weight: 600;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  animation: node-reveal 420ms ease forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+.tree-node-root {
+  background: #e2efff;
+  color: #245f9a;
+  border-color: rgba(75, 159, 255, 0.3);
 }
 
 .tree-node-default {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.16);
 }
@@ -423,6 +483,10 @@ button:focus {
   color: #7f5006;
   font-family: "IBM Plex Mono", monospace;
   font-weight: 600;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  animation: node-reveal 420ms ease forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
 }
 
 .cycle-arrow {
@@ -432,6 +496,16 @@ button:focus {
 
 .cycle-note {
   color: var(--amber);
+  font-size: 0.84rem;
+}
+
+.hierarchy-card-note {
+  border-bottom: 0;
+  padding-top: 2px;
+}
+
+.hierarchy-note {
+  color: var(--text-dim);
   font-size: 0.84rem;
 }
 
@@ -542,6 +616,17 @@ button:focus {
   overflow: auto;
 }
 
+@keyframes node-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 1040px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -570,6 +655,11 @@ button:focus {
 
   .nav-links {
     display: none;
+  }
+
+  .validation-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

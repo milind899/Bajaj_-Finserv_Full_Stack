@@ -38,7 +38,7 @@
             <textarea id="nodeInput" spellcheck="false">A->B, A->C, B->D, X->Y, Y->Z, Z->X</textarea>
             <button id="submitButton" class="analyse-button" type="button">
               Analyse
-              <span class="button-arrow">→</span>
+              <span class="button-arrow">&rarr;</span>
             </button>
           </div>
 
@@ -47,6 +47,14 @@
             <button class="example-chip" type="button" data-preset="A->B, B->A">Try: A->B, B->A (cycle)</button>
             <button class="example-chip" type="button" data-preset="P->Q, hello, 1->2">Try: P->Q, hello, 1->2</button>
           </div>
+
+          <section class="validation-panel" aria-label="Live validation">
+            <div class="validation-head">
+              <span>Live validation</span>
+              <span id="validationSummary">0 valid / 0 invalid</span>
+            </div>
+            <div id="validationTokens" class="validation-tokens"></div>
+          </section>
         </section>
 
         <section class="summary-strip" aria-label="Summary statistics">
