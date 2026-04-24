@@ -3,170 +3,121 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bajaj Finserv Hierarchy Console</title>
+    <title>GraphTree | Hierarchy Visualizer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="backdrop-grid" aria-hidden="true"></div>
-    <div class="backdrop-orbit orbit-left" aria-hidden="true"></div>
-    <div class="backdrop-orbit orbit-right" aria-hidden="true"></div>
-
     <div class="page-shell">
-      <header class="masthead reveal">
-        <div class="masthead-topline">
-          <span class="eyebrow">Full Stack Engineering Challenge</span>
-          <span class="eyebrow">Single Page Frontend + POST /bfhl API</span>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-name">GraphTree</span>
         </div>
-
-        <div class="masthead-grid">
-          <div class="masthead-copy">
-            <p class="display-kicker">Evaluation-ready interface</p>
-            <h1>Hierarchy intelligence presented like a review console, not a student demo.</h1>
-            <p class="hero-copy">
-              Submit edge lists, inspect valid trees, spot cycles instantly, and read the exact JSON
-              that the evaluator will receive. The interface is tuned for clarity, fast scanning, and
-              confidence under review.
-            </p>
-
-            <div class="signal-row">
-              <span class="signal-chip">POST /bfhl</span>
-              <span class="signal-chip">CORS Enabled</span>
-              <span class="signal-chip">DDMMYYYY Identity</span>
-              <span class="signal-chip">Vercel Ready</span>
-            </div>
-          </div>
-
-          <aside class="profile-panel">
-            <div class="profile-label">Profile integrity</div>
-            <div id="profileStatus" class="profile-status">Checking...</div>
-            <dl class="profile-grid">
-              <div>
-                <dt>Email</dt>
-                <dd>ms5435@srmist.edu.in</dd>
-              </div>
-              <div>
-                <dt>Roll</dt>
-                <dd>RA2311003010028</dd>
-              </div>
-              <div>
-                <dt>DOB</dt>
-                <dd>06-12-2004</dd>
-              </div>
-              <div>
-                <dt>User ID</dt>
-                <dd>milindshandilya_06122004</dd>
-              </div>
-            </dl>
-          </aside>
-        </div>
+        <nav class="nav-links" aria-label="Primary">
+          <span>Visualizer</span>
+          <span>Docs</span>
+          <span>API</span>
+        </nav>
       </header>
 
-      <main class="workspace">
-        <section class="panel panel-editor reveal">
-          <div class="panel-header">
-            <div>
-              <p class="section-tag">Input Console</p>
-              <h2>Compose the hierarchy payload</h2>
-            </div>
-            <button id="sampleButton" class="button button-secondary" type="button">Load sample</button>
-          </div>
+      <main class="app-frame">
+        <section class="hero-panel">
+          <p class="eyebrow">SRM Full Stack Challenge</p>
+          <h1>Hierarchy Visualizer</h1>
+          <p class="hero-copy">
+            Enter node edges below. Supports multiple trees, cycle detection, and invalid entry reporting.
+          </p>
 
-          <div class="instruction-strip">
-            <div class="instruction-card">
-              <span class="instruction-index">01</span>
-              <p>Use one edge per line or comma-separated entries.</p>
-            </div>
-            <div class="instruction-card">
-              <span class="instruction-index">02</span>
-              <p>Whitespace is trimmed before validation.</p>
-            </div>
-            <div class="instruction-card">
-              <span class="instruction-index">03</span>
-              <p>Multi-parent conflicts keep the first valid parent only.</p>
-            </div>
-          </div>
-
-          <label class="field-label" for="nodeInput">Payload entries</label>
-          <textarea id="nodeInput" spellcheck="false">A->B
-A->C
-B->D</textarea>
-
-          <div class="editor-footer">
-            <div class="editor-metrics">
-              <div class="metric-box">
-                <span class="metric-label">Entries detected</span>
-                <strong id="entryCount">3</strong>
-              </div>
-              <div class="metric-box">
-                <span class="metric-label">Submission state</span>
-                <strong id="statusText">Ready</strong>
-              </div>
-            </div>
-
-            <button id="submitButton" class="button button-primary" type="button">
-              Run analysis
+          <div class="input-row">
+            <textarea id="nodeInput" spellcheck="false">A->B, A->C, B->D, X->Y, Y->Z, Z->X</textarea>
+            <button id="submitButton" class="analyse-button" type="button">
+              Analyse
+              <span class="button-arrow">→</span>
             </button>
+          </div>
+
+          <div class="example-row" aria-label="Preset examples">
+            <button class="example-chip" type="button" data-preset="A->B, B->C">Try: A->B, B->C</button>
+            <button class="example-chip" type="button" data-preset="A->B, B->A">Try: A->B, B->A (cycle)</button>
+            <button class="example-chip" type="button" data-preset="P->Q, hello, 1->2">Try: P->Q, hello, 1->2</button>
           </div>
         </section>
 
-        <section class="panel panel-results reveal reveal-delay-1">
-          <div class="panel-header">
-            <div>
-              <p class="section-tag">Response View</p>
-              <h2>Structured evaluator output</h2>
-            </div>
-            <div class="result-actions">
-              <div id="responseState" class="response-state">Awaiting request</div>
-              <button id="copyButton" class="button button-secondary" type="button">Copy JSON</button>
-            </div>
-          </div>
+        <section class="summary-strip" aria-label="Summary statistics">
+          <article class="summary-card">
+            <span class="summary-value" id="totalTrees">0</span>
+            <span class="summary-label">Valid trees</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-value summary-value-amber" id="totalCycles">0</span>
+            <span class="summary-label">Cycles detected</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-value summary-value-blue" id="largestTreeRoot">-</span>
+            <span class="summary-label">Deepest tree root</span>
+          </article>
+        </section>
 
-          <div class="overview-band">
-            <div id="summaryStrip" class="summary-strip"></div>
-            <div class="overview-card">
-              <span class="overview-label">Last response</span>
-              <strong id="responseStamp">No request yet</strong>
+        <section class="workspace">
+          <section class="tree-panel panel">
+            <div class="panel-title-row">
+              <h2>Tree hierarchies</h2>
+              <div class="status-line">
+                <span id="statusText">Ready</span>
+              </div>
             </div>
-          </div>
-
-          <section class="results-cluster">
-            <div>
-              <p class="cluster-tag">Hierarchies</p>
-              <div id="hierarchies" class="hierarchy-list"></div>
-            </div>
-
-            <div class="issues-grid">
-              <article class="issue-card">
-                <div class="issue-head">
-                  <p class="cluster-tag">Invalid entries</p>
-                  <span class="issue-badge">Validation</span>
-                </div>
-                <ul id="invalidEntries" class="pill-list"></ul>
-              </article>
-
-              <article class="issue-card">
-                <div class="issue-head">
-                  <p class="cluster-tag">Duplicate edges</p>
-                  <span class="issue-badge">Normalization</span>
-                </div>
-                <ul id="duplicateEdges" class="pill-list"></ul>
-              </article>
-            </div>
+            <div id="hierarchies" class="hierarchy-stack"></div>
           </section>
 
-          <section class="json-panel">
-            <div class="json-head">
-              <p class="cluster-tag">Raw JSON</p>
-              <span class="json-note">Exact payload for verification and copy-paste checks</span>
-            </div>
+          <aside class="meta-panel panel">
+            <section class="meta-section">
+              <h3>Invalid entries</h3>
+              <div id="invalidEntries" class="pill-stack"></div>
+            </section>
+
+            <section class="meta-section">
+              <h3>Duplicate edges</h3>
+              <div id="duplicateEdges" class="pill-stack"></div>
+            </section>
+
+            <section class="meta-section meta-section-identity">
+              <h3>Identity</h3>
+              <dl class="identity-grid">
+                <div>
+                  <dt>User ID</dt>
+                  <dd id="identityUserId">milindshandilya_06122004</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd id="identityEmail">ms5435@srmist.edu.in</dd>
+                </div>
+                <div>
+                  <dt>Roll</dt>
+                  <dd id="identityRoll">RA2311003010028</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd id="profileStatus">Checking</dd>
+                </div>
+              </dl>
+            </section>
+          </aside>
+        </section>
+
+        <section class="raw-panel panel">
+          <details id="rawJsonDetails">
+            <summary>
+              <span>Raw JSON</span>
+              <button id="copyButton" class="copy-button" type="button">Copy JSON</button>
+            </summary>
             <pre id="rawJson" class="raw-json"></pre>
-          </section>
+          </details>
         </section>
       </main>
     </div>

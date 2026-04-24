@@ -1,43 +1,20 @@
 const nodeInput = document.getElementById("nodeInput");
 const submitButton = document.getElementById("submitButton");
-const sampleButton = document.getElementById("sampleButton");
 const copyButton = document.getElementById("copyButton");
 const statusText = document.getElementById("statusText");
-const responseState = document.getElementById("responseState");
-const responseStamp = document.getElementById("responseStamp");
-const summaryStrip = document.getElementById("summaryStrip");
 const hierarchies = document.getElementById("hierarchies");
 const invalidEntries = document.getElementById("invalidEntries");
 const duplicateEdges = document.getElementById("duplicateEdges");
 const rawJson = document.getElementById("rawJson");
 const profileStatus = document.getElementById("profileStatus");
-const entryCount = document.getElementById("entryCount");
-
-const sampleInput = [
-  "A->B",
-  "A->C",
-  "B->D",
-  "C->E",
-  "E->F",
-  "X->Y",
-  "Y->Z",
-  "Z->X",
-  "P->Q",
-  "Q->R",
-  "G->H",
-  "G->H",
-  "G->I",
-  "hello",
-  "1->2",
-  "A->",
-].join("\n");
-
-function formatNow() {
-  return new Date().toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
+const totalTrees = document.getElementById("totalTrees");
+const totalCycles = document.getElementById("totalCycles");
+const largestTreeRoot = document.getElementById("largestTreeRoot");
+const identityUserId = document.getElementById("identityUserId");
+const identityEmail = document.getElementById("identityEmail");
+const identityRoll = document.getElementById("identityRoll");
+const rawJsonDetails = document.getElementById("rawJsonDetails");
+const exampleButtons = Array.from(document.querySelectorAll("[data-preset]"));
 
 function parseInput(value) {
   return value
@@ -46,29 +23,40 @@ function parseInput(value) {
     .filter((entry) => entry.length > 0);
 }
 
-function refreshEntryCount() {
-  entryCount.textContent = String(parseInput(nodeInput.value).length);
-}
-
-function createList(items, emptyText) {
+function createPills(items, variant, emptyText) {
   if (!items.length) {
-    return `<li class="empty-pill">${emptyText}</li>`;
+    return `<span class="pill pill-neutral">${emptyText}</span>`;
   }
 
-  return items.map((item) => `<li>${item}</li>`).join("");
+  return items
+    .map((item) => `<span class="pill ${variant}">${item}</span>`)
+    .join("");
 }
 
-function renderTreeNode([label, children]) {
+function renderTreeBranch([label, children], isRoot = false) {
+  const branchClass = isRoot ? "tree-node" : "tree-node tree-node-default";
   const childEntries = Object.entries(children || {});
+
   return `
     <li>
-      <span class="tree-node-label">${label}</span>
+      <span class="${branchClass}">${label}</span>
       ${
         childEntries.length
-          ? `<ul>${childEntries.map(renderTreeNode).join("")}</ul>`
+          ? `<ul>${childEntries.map((entry) => renderTreeBranch(entry)).join("")}</ul>`
           : ""
       }
     </li>
+  `;
+}
+
+function renderCycleVisual(root) {
+  return `
+    <div class="cycle-visual">
+      <span class="cycle-node">${root}</span>
+      <span class="cycle-arrow">↻</span>
+      <span class="cycle-node">cycle</span>
+      <span class="cycle-note">cyclic group detected</span>
+    </div>
   `;
 }
 
@@ -76,40 +64,40 @@ function renderHierarchies(items) {
   if (!items.length) {
     hierarchies.innerHTML = `
       <article class="hierarchy-card">
-        <h3>No hierarchies yet</h3>
-        <p class="hero-copy" style="margin-top: 10px; color: #55606d;">
-          Submit a payload to render the processed hierarchy objects here.
-        </p>
+        <div class="hierarchy-head">
+          <span class="badge badge-root">No data</span>
+        </div>
+        <div class="cycle-note">Run the analyser to render tree hierarchies here.</div>
       </article>
     `;
     return;
   }
 
   hierarchies.innerHTML = items
-    .map((item, index) => {
-      const treeMarkup = item.has_cycle
-        ? `<div class="tree-shell"><strong>Cycle detected.</strong> Tree output is intentionally empty for cyclic groups.</div>`
-        : `<div class="tree-shell"><ul class="tree-list">${Object.entries(item.tree)
-            .map(renderTreeNode)
-            .join("")}</ul></div>`;
+    .map((item) => {
+      if (item.has_cycle) {
+        return `
+          <article class="hierarchy-card">
+            <div class="hierarchy-head">
+              <span class="badge badge-root">Root: ${item.root}</span>
+              <span class="badge badge-cycle">↻ cycle</span>
+            </div>
+            ${renderCycleVisual(item.root)}
+          </article>
+        `;
+      }
 
       return `
         <article class="hierarchy-card">
-          <h3>Hierarchy ${index + 1}: root ${item.root}</h3>
-          <div class="hierarchy-meta">
-            <span class="chip">root ${item.root}</span>
-            ${
-              item.depth
-                ? `<span class="chip">depth ${item.depth}</span>`
-                : ""
-            }
-            ${
-              item.has_cycle
-                ? `<span class="chip chip-cycle">cycle detected</span>`
-                : `<span class="chip">valid tree</span>`
-            }
+          <div class="hierarchy-head">
+            <span class="badge badge-root">Root: ${item.root}</span>
+            <span class="badge badge-depth">depth ${item.depth}</span>
           </div>
-          ${treeMarkup}
+          <div class="tree-stage">
+            <ul class="tree-list">${Object.entries(item.tree)
+              .map((entry) => renderTreeBranch(entry, true))
+              .join("")}</ul>
+          </div>
         </article>
       `;
     })
@@ -117,52 +105,39 @@ function renderHierarchies(items) {
 }
 
 function renderSummary(summary) {
-  const entries = [
-    ["Total trees", summary.total_trees],
-    ["Total cycles", summary.total_cycles],
-    ["Largest tree root", summary.largest_tree_root || "-"],
-  ];
-
-  summaryStrip.innerHTML = entries
-    .map(
-      ([label, value]) => `
-        <div class="summary-card">
-          <strong>${label}</strong>
-          <span>${value}</span>
-        </div>
-      `
-    )
-    .join("");
+  totalTrees.textContent = String(summary.total_trees);
+  totalCycles.textContent = String(summary.total_cycles);
+  largestTreeRoot.textContent = summary.largest_tree_root || "-";
 }
 
 function renderResponse(payload) {
   renderSummary(payload.summary);
   renderHierarchies(payload.hierarchies);
-  invalidEntries.innerHTML = createList(payload.invalid_entries, "No invalid entries");
-  duplicateEdges.innerHTML = createList(payload.duplicate_edges, "No duplicate edges");
+  invalidEntries.innerHTML = createPills(payload.invalid_entries, "pill-invalid", "No invalid entries");
+  duplicateEdges.innerHTML = createPills(payload.duplicate_edges, "pill-duplicate", "No duplicate edges");
   rawJson.textContent = JSON.stringify(payload, null, 2);
 }
 
-function setResponseMeta(stateText, stampText) {
-  responseState.textContent = stateText;
-  responseStamp.textContent = stampText;
+function updateIdentity(profile) {
+  identityUserId.textContent = `${profile.fullName.toLowerCase().replace(/[^a-z]/g, "")}_${profile.dob}`;
+  identityEmail.textContent = profile.emailId;
+  identityRoll.textContent = profile.collegeRollNumber;
+  profileStatus.textContent = "Verified";
 }
 
 async function fetchProfile() {
   try {
     const response = await fetch("/profile");
     const profile = await response.json();
-    profileStatus.textContent = `${profile.fullName} verified`;
+    updateIdentity(profile);
   } catch (_error) {
-    profileStatus.textContent = "Profile check unavailable";
+    profileStatus.textContent = "Unavailable";
   }
 }
 
 async function submitData() {
   const data = parseInput(nodeInput.value);
-  statusText.textContent = "Submitting";
-  submitButton.disabled = true;
-  setResponseMeta("Running analysis", `Requested ${formatNow()}`);
+  statusText.textContent = "Running";
 
   try {
     const response = await fetch("/bfhl", {
@@ -179,36 +154,31 @@ async function submitData() {
     }
 
     renderResponse(payload);
-    statusText.textContent = "Success";
-    setResponseMeta("Response verified", `Updated ${formatNow()}`);
+    statusText.textContent = "Ready";
   } catch (error) {
     statusText.textContent = "Failed";
-    setResponseMeta("Request failed", `Error at ${formatNow()}`);
     rawJson.textContent = JSON.stringify({ error: error.message }, null, 2);
-  } finally {
-    submitButton.disabled = false;
+    rawJsonDetails.open = true;
   }
 }
 
-nodeInput.addEventListener("input", refreshEntryCount);
-
-sampleButton.addEventListener("click", () => {
-  nodeInput.value = sampleInput;
-  refreshEntryCount();
-  setResponseMeta("Sample loaded", "Ready for submission");
+exampleButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    nodeInput.value = button.dataset.preset;
+  });
 });
 
-copyButton.addEventListener("click", async () => {
+submitButton.addEventListener("click", submitData);
+
+copyButton.addEventListener("click", async (event) => {
+  event.preventDefault();
   if (!rawJson.textContent) {
     return;
   }
 
   await navigator.clipboard.writeText(rawJson.textContent);
   statusText.textContent = "Copied";
-  setResponseMeta("JSON copied", `Copied ${formatNow()}`);
 });
-
-submitButton.addEventListener("click", submitData);
 
 renderResponse({
   hierarchies: [],
@@ -221,6 +191,4 @@ renderResponse({
   },
 });
 
-refreshEntryCount();
-setResponseMeta("Awaiting request", "No request yet");
 fetchProfile();
