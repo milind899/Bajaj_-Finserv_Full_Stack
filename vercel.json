@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/bfhl",
+      "destination": "/api/bfhl"
+    },
+    {
+      "source": "/profile",
+      "destination": "/api/profile"
+    }
+  ]
+}
