@@ -15,7 +15,15 @@ module.exports = (req, res) => {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  let body;
+
+  try {
+    body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  } catch (_error) {
+    return res.status(400).json({
+      error: "Invalid JSON body.",
+    });
+  }
 
   if (!Array.isArray(body.data)) {
     return res.status(400).json({
